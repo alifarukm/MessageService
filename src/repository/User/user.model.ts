@@ -15,6 +15,9 @@ export class User {
   @Description("User's password")
   password: string;
 
+  @Description("Users id blocked by the user.")
+  blocks: string[];
+
   @Format("date-time")
   @Description("Creation's date")
   dateCreate: Date = new Date();

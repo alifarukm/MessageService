@@ -22,7 +22,15 @@ export class UserService {
       password: await BCryptService.hash(password),
       dateCreate: new Date(),
       dateUpdate: new Date(),
+      blocks: [],
     });
+  }
+
+  async block(id: string, email: string) {
+    const user = await this.User.findOne({ email: email });
+    if (user) {
+      return await this.User.findByIdAndUpdate(id, { $push: { blocks: user._id } }, { new: true });
+    }
   }
 
   /**
@@ -30,22 +38,18 @@ export class UserService {
    * @param id
    * @returns {undefined|IUser}
    */
-  async findById(id: string): Promise<any> {}
+  async findById(id: string): Promise<any> {
+    return await this.User.findById(id);
+  }
 
   /**
    * Find a user by property.
    * @param property
    * @returns {undefined|IUser}
    */
-  async find(property: any): Promise<any> {}
-
-  /**
-   * Find a user by email.
-   * @param property
-   * @returns {undefined|IUser}
-   */
-
-  async findByEmail(email: string): Promise<any> {}
+  async find(property: any): Promise<any> {
+    return await this.User.find(property);
+  }
 
   /**
    * Delete a user by id.
@@ -53,7 +57,7 @@ export class UserService {
    * @returns {undefined|IUser}
    */
 
-  async delete(id: string, tenant: any): Promise<any> {}
-
-  async update(id: string, profile: any): Promise<any> {}
+  async delete(id: string): Promise<any> {
+    return await this.User.findByIdAndDelete(id);
+  }
 }
