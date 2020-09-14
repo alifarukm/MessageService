@@ -16,9 +16,10 @@ export class UserService {
    * @param id
    * @returns {undefined|IUser}
    */
-  async create(email: string, password: string): Promise<any> {
+  async create(email: string, password: string, username: string): Promise<any> {
     return await this.User.create({
       email: email,
+      userName: username,
       password: await BCryptService.hash(password),
       dateCreate: new Date(),
       dateUpdate: new Date(),

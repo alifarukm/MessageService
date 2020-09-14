@@ -8,6 +8,11 @@ export class UserRegisterRequest {
   email: string;
 
   @Required()
+  @Description("User username.")
+  @Property()
+  username: string;
+
+  @Required()
   @Property()
   @Description("User email.")
   password: string;

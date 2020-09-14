@@ -21,6 +21,6 @@ export class AuthController {
   @Summary("This endpoint developed for create new user.")
   @Post("/register")
   async register(@Description("User's register variables.") @Required() @BodyParams("user") user: UserRegisterRequest) {
-    await this.user.create(user.email, user.password);
+    await this.user.create(user.email, user.password, user.username);
   }
 }

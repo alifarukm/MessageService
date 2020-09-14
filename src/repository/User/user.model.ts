@@ -12,6 +12,11 @@ export class User {
   @Description("User's email")
   email: string;
 
+  @Required()
+  @Unique()
+  @Description("User's userName")
+  userName: string;
+
   @Description("User's password")
   password: string;
 
