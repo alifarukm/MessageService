@@ -11,7 +11,7 @@ import * as cookieParser from "cookie-parser";
 import * as cors from "cors";
 import * as methodOverride from "method-override";
 import mongooseConfig from "./config/mongoose";
-import { GlobalErrorHandlerMiddleware } from "./middlewares/GlobalErrorMiddleware";
+import { HttpExceptionFilter } from "./middlewares/GlobalErrorMiddleware";
 import { User } from "./repository/User/user.model";
 export const rootDir = __dirname;
 
@@ -43,7 +43,7 @@ export class Server {
   @Configuration()
   settings: Configuration;
   $afterRoutesInit() {
-    this.app.use(GlobalErrorHandlerMiddleware);
+    this.app.use(HttpExceptionFilter);
   }
   $beforeRoutesInit() {
     this.app

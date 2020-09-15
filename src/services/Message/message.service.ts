@@ -147,6 +147,7 @@ export class MessageService {
           })
           .project({
             participants: "$details.userName",
+
             lastMessage: {
               $slice: ["$messages", -1],
             },

@@ -1,31 +1,41 @@
-import { NextFunction as ExpressNext, Request as ExpressRequest, Response as ExpressResponse } from "express";
-import { MiddlewareError, Request, Response, Next, Err, IMiddlewareError } from "@tsed/common";
-import { $log } from "ts-log-debug";
+import { Catch, PlatformContext, ExceptionFilterMethods, ResponseErrorObject } from "@tsed/common";
 import { Exception } from "@tsed/exceptions";
 
-@MiddlewareError()
-export class GlobalErrorHandlerMiddleware implements IMiddlewareError {
-  use(@Err() error: any, @Request() request: ExpressRequest, @Response() response: ExpressResponse, @Next() next: ExpressNext): any {
-    if (response.headersSent) {
-      return next(error);
-    }
+@Catch(Exception)
+export class HttpExceptionFilter implements ExceptionFilterMethods {
+  catch(exception: Exception, ctx: PlatformContext) {
+    const { response, logger } = ctx;
+    const error = this.mapError(exception);
+    const headers = this.getHeaders(exception);
 
-    const toHTML = (message = "") => message.replace(/\n/gi, "<br />");
+    logger.error({
+      error,
+    });
 
-    if (error instanceof Exception) {
-      $log.error("" + error);
-      response.status(error.status).send(toHTML(error.message));
-      return next();
-    }
+    response.setHeaders(headers).status(error.status).body(error);
+  }
 
-    if (typeof error === "string") {
-      response.status(404).send(toHTML(error));
-      return next();
-    }
+  mapError(error: any) {
+    return {
+      name: error.origin?.name || error.name,
+      message: error.message,
+      status: error.status || 500,
+      errors: this.getErrors(error),
+    };
+  }
 
-    $log.error("" + error);
-    response.status(error.status || 500).send("Internal Error");
+  protected getErrors(error: any) {
+    return [error, error.origin].filter(Boolean).reduce((errs, { errors }: ResponseErrorObject) => {
+      return [...errs, ...(errors || [])];
+    }, []);
+  }
 
-    return next();
+  protected getHeaders(error: any) {
+    return [error, error.origin].filter(Boolean).reduce((obj, { headers }: ResponseErrorObject) => {
+      return {
+        ...obj,
+        ...(headers || {}),
+      };
+    }, {});
   }
 }

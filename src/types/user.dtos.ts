@@ -15,6 +15,7 @@ export class Auth extends UserInfo {
 export interface IUser {
   _id: string;
   email: string;
+  userName: string;
   dateCreate: Date;
   dateUpdate: Date;
 }

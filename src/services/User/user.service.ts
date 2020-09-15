@@ -2,29 +2,43 @@ import { Inject } from "@tsed/common";
 import { Service } from "@tsed/di";
 import { MongooseModel } from "@tsed/mongoose";
 import { User } from "../../repository/User/user.model";
+import { IResponse } from "../../types/response";
 import { BCryptService } from "../Bcrypt/bcrypt.service";
 
 @Service()
 export class UserService {
-  constructor(
-    @Inject(User)
-    private User: MongooseModel<User>
-  ) {}
+  @Inject(User)
+  private User: MongooseModel<User>;
 
   /**
    * Find a user by his ID.
    * @param id
    * @returns {undefined|IUser}
    */
-  async create(email: string, password: string, username: string): Promise<any> {
-    return await this.User.create({
-      email: email,
-      userName: username,
-      password: await BCryptService.hash(password),
-      dateCreate: new Date(),
-      dateUpdate: new Date(),
-      blocks: [],
-    });
+  async create(email: string, password: string, username: string): Promise<IResponse> {
+    try {
+      const result = await this.User.create({
+        email: email,
+        userName: username,
+        password: await BCryptService.hash(password),
+        dateCreate: new Date(),
+        dateUpdate: new Date(),
+        blocks: [],
+      });
+      return {
+        success: true,
+        data: {
+          _id: result._id,
+          email: result.email,
+          userName: result.userName,
+        },
+      } as IResponse;
+    } catch (err) {
+      return {
+        success: false,
+        error: err,
+      } as IResponse;
+    }
   }
 
   async block(id: string, email: string) {

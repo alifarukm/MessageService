@@ -8,10 +8,8 @@ import { NotFound } from "@tsed/exceptions";
 
 @Service()
 export class AuthService {
-  constructor(
-    @Inject(User)
-    private User: MongooseModel<User>
-  ) {}
+  @Inject(User)
+  private User: MongooseModel<User>;
 
   async findByCredential(email: string, password: string) {
     const user: User | null = await this.User.findOne({ email: email });
