@@ -1,12 +1,12 @@
 import { Inject } from "@tsed/common";
 import { Service } from "@tsed/di";
+import { BadRequest } from "@tsed/exceptions";
 import { MongooseModel } from "@tsed/mongoose";
 import { Types } from "mongoose";
 
 import { Room } from "../../repository/Message/room.model";
 import { User } from "../../repository/User/user.model";
 import { sendMessageDTO } from "../../types/message.dtos";
-import { BCryptService } from "../Bcrypt/bcrypt.service";
 
 @Service()
 export class MessageService {
@@ -28,11 +28,15 @@ export class MessageService {
     try {
       let room;
       let result;
-      /*Check room is available*/
+      const sendUsers = message.participants;
       let user = await this.User.findById(message.from);
 
-      if (user) message.participants.push(user?.userName);
-
+      if (user) {
+        message.participants.push(user.userName);
+      } else {
+        return { success: false, data: new BadRequest("Users not found.") };
+      }
+      // If client comes from roomId get room and push message.
       if (message.roomId && Types.ObjectId.isValid(message.roomId)) {
         room = await this.Room.findById(message.roomId);
 
@@ -79,6 +83,16 @@ export class MessageService {
               { new: true }
             );
           } else {
+            let anyBlock = await this.User.find({
+              userName: { $in: sendUsers },
+            });
+
+            anyBlock.map((usr) => {
+              if (usr.blocks.includes(user?._id)) {
+                return { success: false, data: new BadRequest("A user or many blocked you.") };
+              }
+            });
+
             room = await this.Room.create({
               participants: users,
               dateCreate: new Date(),
@@ -100,7 +114,6 @@ export class MessageService {
             );
           }
         }
-        // TODO Check user's block
       }
       return { success: true, data: result };
     } catch (err) {
