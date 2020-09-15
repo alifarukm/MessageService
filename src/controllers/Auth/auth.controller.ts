@@ -14,7 +14,7 @@ export class AuthController {
   @Summary("This endpoint developed for login.")
   @Post("/login")
   @Authenticate("local")
-  login(@Req() req: Req, @Description("User's login variables.") @Required() @BodyParams("user") user: UserLoginRequest) {
+  login(@Req() req: Req, @Required() @BodyParams("email") email: string, @Required() @BodyParams("password") password: string) {
     return req.user;
   }
 

@@ -27,6 +27,6 @@ export class UserLoginRequest {
 
   @Required()
   @Property()
-  @Description("User email.")
+  @Description("User password.")
   password: string;
 }

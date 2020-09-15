@@ -23,8 +23,10 @@ export class LocalProtocol implements OnVerify {
 
   async $onVerify(@BodyParams() credentials: never) {
     const { email, password } = credentials;
-
+    console.log(credentials);
     const user = await this.authService.findByCredential(email, password);
+    console.log(user);
+
     if (!user) {
       throw new Unauthorized("Wrong credentials");
     }

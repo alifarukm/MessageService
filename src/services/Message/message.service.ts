@@ -1,7 +1,8 @@
 import { Inject } from "@tsed/common";
 import { Service } from "@tsed/di";
 import { MongooseModel } from "@tsed/mongoose";
-import { startSession } from "mongoose";
+import { Types } from "mongoose";
+
 import { Room } from "../../repository/Message/room.model";
 import { User } from "../../repository/User/user.model";
 import { sendMessageDTO } from "../../types/message.dtos";
@@ -24,14 +25,17 @@ export class MessageService {
    * @returns {undefined|IUser}
    */
   async send(message: sendMessageDTO): Promise<any> {
-    const session = await startSession();
     try {
-      session.startTransaction();
       let room;
       let result;
       /*Check room is available*/
-      if (message.roomId) {
-        room = await this.Room.findById(message.roomId).session(session);
+      let user = await this.User.findById(message.from);
+
+      if (user) message.participants.push(user?.userName);
+
+      if (message.roomId && Types.ObjectId.isValid(message.roomId)) {
+        room = await this.Room.findById(message.roomId);
+
         if (room) {
           result = await this.Room.findByIdAndUpdate(
             message.roomId,
@@ -45,46 +49,61 @@ export class MessageService {
               },
             },
             { new: true }
-          ).session(session);
+          );
         }
       } else {
         /*If not create room*/
         let users = await this.User.find({
           userName: { $in: message.participants },
-        }).session(session);
-        // TODO Check user's valid
-        room = await this.Room.create(
-          {
-            participants: users,
-            dateCreate: new Date(),
-            dateUpdate: new Date(),
-          },
-          { session: session }
-        );
-
-        result = await this.Room.findByIdAndUpdate(
-          room._id,
-          {
-            $push: {
-              messages: {
-                from: message.from,
-                date: new Date(),
-                message: message.message,
-              },
+        });
+        if (users.length === message.participants.length) {
+          room = await this.Room.findOne({
+            participants: {
+              $eq: users.map((item) => {
+                return item._id;
+              }),
             },
-          },
-          { new: true }
-        ).session(session);
-      }
+          });
+          if (room) {
+            result = await this.Room.findByIdAndUpdate(
+              room._id,
+              {
+                $push: {
+                  messages: {
+                    from: message.from,
+                    date: new Date(),
+                    message: message.message,
+                  },
+                },
+              },
+              { new: true }
+            );
+          } else {
+            room = await this.Room.create({
+              participants: users,
+              dateCreate: new Date(),
+              dateUpdate: new Date(),
+            });
 
-      await session.commitTransaction();
-      session.endSession();
+            result = await this.Room.findByIdAndUpdate(
+              room._id,
+              {
+                $push: {
+                  messages: {
+                    from: message.from,
+                    date: new Date(),
+                    message: message.message,
+                  },
+                },
+              },
+              { new: true }
+            );
+          }
+        }
+        // TODO Check user's block
+      }
       return { success: true, data: result };
     } catch (err) {
-      await session.abortTransaction();
-
-      session.endSession();
-
       return { success: false, data: err };
     }
   }
@@ -97,21 +116,30 @@ export class MessageService {
   async getAllMessages(id: string) {
     try {
       let user = await this.User.findById(id);
+
       if (user) {
-        let rooms = await this.Room.aggregate([
-          {
-            $in: {
-              participants: user._id,
+        console.log(id);
+
+        let rooms = await this.Room.aggregate()
+          .match({
+            participants: {
+              $in: [user._id, "$participants"],
             },
-          },
-          {
-            $project: {
-              messages: {
-                $slice: ["$messages", -1],
-              },
+          })
+          .lookup({
+            from: "users",
+            localField: "messages.from",
+            foreignField: "_id",
+            as: "details",
+          })
+          .project({
+            participants: "$details.userName",
+            lastMessage: {
+              $slice: ["$messages", -1],
             },
-          },
-        ]);
+          })
+          .unwind("$lastMessage");
+
         return { success: true, data: rooms };
       } else {
         return { success: false, data: null };
@@ -128,7 +156,13 @@ export class MessageService {
    */
   async getConversation(id: string) {
     try {
-      let room = await this.Room.findById(id);
+      let room = await this.Room.aggregate()
+        .match({ _id: Types.ObjectId(id) })
+        .lookup({ from: "users", localField: "messages.from", foreignField: "_id", as: "details" })
+        .project({
+          participants: "$details.userName",
+          messages: "$messages",
+        });
       return { success: true, data: room };
     } catch (err) {
       return { success: false, data: err };
