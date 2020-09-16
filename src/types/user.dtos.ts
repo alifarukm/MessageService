@@ -18,6 +18,7 @@ export interface IUser {
   userName: string;
   dateCreate: Date;
   dateUpdate: Date;
+  blocks: string[];
 }
 
 export interface IUserRegisterDTO {

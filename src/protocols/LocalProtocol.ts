@@ -4,6 +4,8 @@ import { OnVerify, Protocol } from "@tsed/passport";
 import * as jwt from "jsonwebtoken";
 import { IStrategyOptions, Strategy } from "passport-local";
 import { AuthService } from "../services/Auth/auth.service";
+import { LogService } from "../services/Logging/log.service";
+import { LogTypes } from "../types/enums/logTypes";
 import { Auth } from "../types/user.dtos";
 
 @Protocol<IStrategyOptions>({
@@ -17,24 +19,36 @@ import { Auth } from "../types/user.dtos";
 export class LocalProtocol implements OnVerify {
   @Inject()
   authService: AuthService;
+  @Inject()
+  logService: LogService;
 
   @Constant("passport.protocols.jwt.settings")
   jwtSettings: never;
 
   async $onVerify(@BodyParams() credentials: never) {
     const { email, password } = credentials;
-    console.log(credentials);
     const user = await this.authService.findByCredential(email, password);
-    console.log(user);
 
     if (!user) {
       throw new Unauthorized("Wrong credentials");
     }
     if (!this.authService.verifyPassword(user, password)) {
+      await this.logService.create({
+        error: "Wrong credentials",
+        info: "User send wrong password.",
+        from: user.id,
+        type: LogTypes.info,
+      });
       throw new Unauthorized("Wrong credentials");
     }
 
     const token = this.createJwt(user);
+
+    await this.logService.create({
+      info: `Login success. Mail : ${user.email}`,
+      from: user.id,
+      type: LogTypes.info,
+    });
 
     return token;
   }

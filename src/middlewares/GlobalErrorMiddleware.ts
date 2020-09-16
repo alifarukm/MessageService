@@ -1,13 +1,17 @@
-import { Catch, PlatformContext, ExceptionFilterMethods, ResponseErrorObject } from "@tsed/common";
+import { Catch, PlatformContext, ExceptionFilterMethods, ResponseErrorObject, Inject } from "@tsed/common";
 import { Exception } from "@tsed/exceptions";
+import { LogService } from "../services/Logging/log.service";
+import { LogTypes } from "../types/enums/logTypes";
 
 @Catch(Exception)
 export class HttpExceptionFilter implements ExceptionFilterMethods {
-  catch(exception: Exception, ctx: PlatformContext) {
-    const { response, logger } = ctx;
-    const error = this.mapError(exception);
-    const headers = this.getHeaders(exception);
+  @Inject()
+  logService: LogService;
 
+  async catch(exception: Exception, ctx: PlatformContext) {
+    const { response, logger } = ctx;
+    const error = await this.mapError(exception);
+    const headers = this.getHeaders(exception);
     logger.error({
       error,
     });
@@ -15,7 +19,12 @@ export class HttpExceptionFilter implements ExceptionFilterMethods {
     response.setHeaders(headers).status(error.status).body(error);
   }
 
-  mapError(error: any) {
+  async mapError(error: any) {
+    await this.logService.create({
+      info: error.origin?.name || error.name,
+      type: LogTypes.error,
+      error: this.getErrors(error),
+    });
     return {
       name: error.origin?.name || error.name,
       message: error.message,

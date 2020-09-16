@@ -22,13 +22,12 @@ describe("UserService", () => {
   });
 
   describe("via PlatformTest to mock other service", function () {
-    this.timeout(3000);
     it("should create a new user", async function () {
       const userService = await PlatformTest.get<UserService>(UserService);
 
-      let result = userService.create("alifaruk.km01@gmail.com", "deneme1", "alifarukm");
+      let result = await userService.create("alifaruk.km01@gmail.com", "deneme1", "alifarukm");
 
-      expect(result).to.be.true;
+      expect(result.success).to.be.true;
     });
   });
 });
